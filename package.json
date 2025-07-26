@@ -1,0 +1,16 @@
+{
+    "name": "cardwars-2d-navmesh-test",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "navmesh_test.ts",
+    "scripts": {
+        "test": "ts-node --loader ts-node/esm navmesh_test.ts"
+    },
+    "dependencies": {
+        "polygon-clipping": "^0.15.7"
+    },
+    "devDependencies": {
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.5"
+    }
+}
