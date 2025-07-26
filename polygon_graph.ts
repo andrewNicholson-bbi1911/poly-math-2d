@@ -2,6 +2,8 @@
 // Классы для работы с графом триангулированного многоугольника
 
 import { convexUnion, convexDifference, trianglesConvexUnion, trianglesDifference, Point as P2DPoint, Triangle as P2DTriangle } from './poly2d.js';
+import polygonClipping from 'polygon-clipping';
+import earcut from 'earcut';
 
 export class Point {
     constructor(public x: number, public y: number) { }
@@ -33,72 +35,154 @@ export class TPolygonConnection {
     }
 }
 
+function toPolygonClippingFormat(pts: Point[]): number[][][] {
+    // polygon-clipping ожидает Polygon: [ [ [x, y], ... ] ]
+    if (pts.length === 0) return [];
+    const ring = pts.map(p => [p.x, p.y]);
+    // Замыкаем контур, если не замкнут
+    if (ring.length > 0 && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) {
+        ring.push([ring[0][0], ring[0][1]]);
+    }
+    return [ring]; // Polygon: массив колец
+}
+
+function parseClippingResult(result: any): Polygon[] {
+    if (!result || result.length === 0) return [];
+    // Если результат — Polygon (number[][][]), оборачиваем в массив
+    if (Array.isArray(result[0][0][0])) {
+        // MultiPolygon: number[][][][]
+        return result.map((poly: number[][][]) => {
+            // Берём только внешний контур (poly[0])
+            return new Polygon(poly[0].map((pt: number[]) => new Point(pt[0], pt[1])));
+        });
+    } else {
+        // Polygon: number[][][]
+        return [new Polygon(result[0].map((pt: number[]) => new Point(pt[0], pt[1])))];
+    }
+}
+
+function triangulateWithHoles(outer: Point[], holes: Polygon[]): Triangle[] {
+    // Формируем flat-массив координат и индексы дырок
+    const vertices: number[] = [];
+    const holeIndices: number[] = [];
+    let idx = 0;
+    // Внешний контур
+    for (const p of outer) {
+        vertices.push(p.x, p.y);
+    }
+    idx += outer.length;
+    // Дырки
+    for (const hole of holes) {
+        holeIndices.push(idx);
+        for (const p of hole.points) {
+            vertices.push(p.x, p.y);
+        }
+        idx += hole.points.length;
+    }
+    // Триангуляция
+    const triangles: Triangle[] = [];
+    const indices = earcut(vertices, holeIndices);
+    for (let i = 0; i < indices.length; i += 3) {
+        const ia = indices[i] * 2, ib = indices[i + 1] * 2, ic = indices[i + 2] * 2;
+        const a: Point = { x: vertices[ia], y: vertices[ia + 1] };
+        const b: Point = { x: vertices[ib], y: vertices[ib + 1] };
+        const c: Point = { x: vertices[ic], y: vertices[ic + 1] };
+        triangles.push([a, b, c]);
+    }
+    return triangles;
+}
+
 // Основной многоугольник
 export class Polygon {
     points: Point[];
     tpolygons: TPolygon[] = [];
-    constructor(points: Point[]) {
-        // Гарантируем CCW порядок точек
+    holes: Polygon[] = [];
+    constructor(points: Point[], holes: Polygon[] = []) {
         this.points = reverseIfNotCCW(points);
-        // Триангуляция ear clipping
-        const triangles = earClippingTriangulation(this.points);
-        // Создаём TPolygon для каждого треугольника
-        this.tpolygons = triangles.map(tri => new TPolygon(tri));
-        // Строим связи между TPolygon
-        buildTPolygonConnections(this.tpolygons);
+        this.holes = holes;
+        this._rebuildTriangulation();
+    }
+    private _rebuildTriangulation() {
+        // Если есть дырки — используем earcut
+        if (this.holes.length > 0) {
+            const triangles = triangulateWithHoles(this.points, this.holes);
+            this.tpolygons = triangles.map(tri => new TPolygon(tri));
+            buildTPolygonConnections(this.tpolygons);
+        } else {
+            const triangles = earClippingTriangulation(this.points);
+            this.tpolygons = triangles.map(tri => new TPolygon(tri));
+            buildTPolygonConnections(this.tpolygons);
+        }
+        // Пересоздаём tpolygons и связи для всех holes (их собственная триангуляция)
+        for (const hole of this.holes) {
+            if (hole.holes.length > 0) {
+                const trianglesH = triangulateWithHoles(hole.points, hole.holes);
+                hole.tpolygons = trianglesH.map(tri => new TPolygon(tri));
+                buildTPolygonConnections(hole.tpolygons);
+            } else {
+                const trianglesH = earClippingTriangulation(hole.points);
+                hole.tpolygons = trianglesH.map(tri => new TPolygon(tri));
+                buildTPolygonConnections(hole.tpolygons);
+            }
+        }
     }
     // Проверка выпуклости
     isConvex(): boolean {
         return isConvexPolygon(this.points);
     }
     // Объединение
-    unionPolygon(other: Polygon): Polygon {
-        if (this.isConvex() && other.isConvex()) {
-            // Используем convexUnion из poly2d
-            const points = convexUnion(this.points as P2DPoint[], other.points as P2DPoint[]);
-            return new Polygon(points.map((p: P2DPoint) => new Point(p.x, p.y)));
-        } else {
-            // Для невыпуклых: объединяем все треугольники, строим выпуклую оболочку
-            const allPoints: Point[] = [];
-            for (const t of this.tpolygons) allPoints.push(...t.mainTriangle);
-            for (const t of other.tpolygons) allPoints.push(...t.mainTriangle);
-            const hull = convexUnion(allPoints as P2DPoint[], []);
-            return new Polygon(hull.map((p: P2DPoint) => new Point(p.x, p.y)));
-        }
+    unionPolygon(other: Polygon): PolygonMap {
+        const pcA = toPolygonClippingFormat(this.points);
+        const pcB = toPolygonClippingFormat(other.points);
+        const result = polygonClipping.union(pcA, pcB);
+        return new PolygonMap(Polygon.fromClippingResult(result));
     }
     // Разность
-    differencePolygon(other: Polygon): Polygon {
-        if (this.isConvex() && other.isConvex()) {
-            // Используем convexDifference из poly2d
-            const diffs = convexDifference(this.points as P2DPoint[], other.points as P2DPoint[]);
-            // Берём только первый результат (упрощённо)
-            if (diffs.length > 0) {
-                return new Polygon(diffs[0].map((p: P2DPoint) => new Point(p.x, p.y)));
-            } else {
-                return new Polygon([]);
-            }
-        } else {
-            // Для невыпуклых: вычитаем каждый треугольник other из каждого треугольника this
-            let resultTris: Triangle[] = [];
-            for (const t1 of this.tpolygons) {
-                let tris: Triangle[] = [t1.mainTriangle];
-                for (const t2 of other.tpolygons) {
-                    const newTris: Triangle[] = [];
-                    for (const tri of tris) {
-                        const diff = trianglesDifference(tri as P2DTriangle, t2.mainTriangle as P2DTriangle);
-                        for (const d of diff) newTris.push(d as Triangle);
-                    }
-                    tris = newTris;
-                }
-                resultTris.push(...tris);
-            }
-            // Собираем все точки результата
-            const points: Point[] = [];
-            for (const tri of resultTris) points.push(...tri);
-            // Строим выпуклую оболочку (упрощённо)
-            const hull = convexUnion(points as P2DPoint[], []);
-            return new Polygon(hull.map((p: P2DPoint) => new Point(p.x, p.y)));
+    differencePolygon(other: Polygon): PolygonMap {
+        const pcA = toPolygonClippingFormat(this.points);
+        const pcB = toPolygonClippingFormat(other.points);
+        const result = polygonClipping.difference(pcA, pcB);
+        return new PolygonMap(Polygon.fromClippingResult(result));
+    }
+    // Получить все внешние контуры как массив Polygon
+    static fromClippingResult(result: any): Polygon[] {
+        if (!result || result.length === 0) return [];
+        // result: MultiPolygon (array of polygons), polygon: array of rings
+        return result.map((poly: number[][][]) => {
+            const outer = poly[0].map((pt: number[]) => new Point(pt[0], pt[1]));
+            const holes = poly.slice(1).map(
+                (hole: number[][]) => new Polygon(hole.map((pt: number[]) => new Point(pt[0], pt[1])))
+            );
+            return new Polygon(outer, holes);
+        });
+    }
+}
+
+export class PolygonMap {
+    polygons: Polygon[];
+    constructor(polygons: Polygon[] = []) {
+        this.polygons = polygons;
+    }
+    // Объединение двух PolygonMap
+    unionPolygon(other: PolygonMap): PolygonMap {
+        let allPolys: Polygon[] = [...this.polygons, ...other.polygons];
+        if (allPolys.length === 0) return new PolygonMap([]);
+        // Собираем все полигоны для polygon-clipping
+        const allPolyRings = allPolys.map(p => toPolygonClippingFormat(p.points)); // number[][][]
+        const result = polygonClipping.union(...allPolyRings);
+        return new PolygonMap(Polygon.fromClippingResult(result));
+    }
+    // Разность PolygonMap - PolygonMap
+    differencePolygon(other: PolygonMap): PolygonMap {
+        if (this.polygons.length === 0) return new PolygonMap([]);
+        const otherPolyRings = other.polygons.map(p => toPolygonClippingFormat(p.points));
+        let resultPolys: Polygon[] = [];
+        for (const p of this.polygons) {
+            const poly = toPolygonClippingFormat(p.points);
+            const diff = polygonClipping.difference(poly, ...otherPolyRings);
+            resultPolys.push(...Polygon.fromClippingResult(diff));
         }
+        return new PolygonMap(resultPolys);
     }
 }
 
