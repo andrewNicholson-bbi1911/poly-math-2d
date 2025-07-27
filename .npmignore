@@ -1,0 +1,26 @@
+# Исходные файлы TypeScript
+src/
+tsconfig.json
+
+# Тестовые и примерные файлы
+example.js
+test_holes.js
+*test*.js
+*test*.ts
+
+# Git и разработка
+.git/
+.gitignore
+.gitattributes
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Временные файлы
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db 

@@ -134,14 +134,14 @@ export class Polygon {
     unionPolygon(other: Polygon): PolygonMap {
         const pcA = toPolygonClippingFormat(this.points);
         const pcB = toPolygonClippingFormat(other.points);
-        const result = polygonClipping.union(pcA, pcB);
+        const result = (polygonClipping.union as any)(pcA, pcB);
         return new PolygonMap(Polygon.fromClippingResult(result));
     }
     // Разность
     differencePolygon(other: Polygon): PolygonMap {
         const pcA = toPolygonClippingFormat(this.points);
         const pcB = toPolygonClippingFormat(other.points);
-        const result = polygonClipping.difference(pcA, pcB);
+        const result = (polygonClipping.difference as any)(pcA, pcB);
         return new PolygonMap(Polygon.fromClippingResult(result));
     }
     // Получить все внешние контуры как массив Polygon
@@ -169,7 +169,7 @@ export class PolygonMap {
         if (allPolys.length === 0) return new PolygonMap([]);
         // Собираем все полигоны для polygon-clipping
         const allPolyRings = allPolys.map(p => toPolygonClippingFormat(p.points)); // number[][][]
-        const result = polygonClipping.union(...allPolyRings);
+        const result = (polygonClipping.union as any)(...allPolyRings);
         return new PolygonMap(Polygon.fromClippingResult(result));
     }
     // Разность PolygonMap - PolygonMap
@@ -179,7 +179,7 @@ export class PolygonMap {
         let resultPolys: Polygon[] = [];
         for (const p of this.polygons) {
             const poly = toPolygonClippingFormat(p.points);
-            const diff = polygonClipping.difference(poly, ...otherPolyRings);
+            const diff = (polygonClipping.difference as any)(poly, ...otherPolyRings);
             resultPolys.push(...Polygon.fromClippingResult(diff));
         }
         return new PolygonMap(resultPolys);

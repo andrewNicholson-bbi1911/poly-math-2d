@@ -1,17 +1,45 @@
 {
-    "name": "cardwars-2d-navmesh-test",
-    "version": "1.0.0",
-    "type": "module",
-    "main": "navmesh_test.ts",
+    "name": "poly-math-2d",
+    "version": "0.1.0",
+    "description": "2D Polygon math: булевы операции, триангуляция, графы, поддержка дырок и невыпуклых фигур.",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist/**/*",
+        "README.md",
+        "LICENSE"
+    ],
     "scripts": {
-        "test": "ts-node --loader ts-node/esm navmesh_test.ts"
+        "build": "tsc",
+        "prepublishOnly": "npm run build",
+        "test": "node example.js"
     },
+    "keywords": [
+        "polygon",
+        "math",
+        "2d",
+        "triangulation",
+        "boolean",
+        "geometry",
+        "earcut",
+        "polygon-clipping",
+        "navmesh"
+    ],
+    "author": "Andrey Elfimov <eandrey813@gmail.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/andrewNicholson-bbi1911/poly-math-2d"
+    },
+    "bugs": {
+        "url": "https://github.com/andrewNicholson-bbi1911/poly-math-2d/issues"
+    },
+    "homepage": "https://github.com/andrewNicholson-bbi1911/poly-math-2d#readme",
     "dependencies": {
-        "earcut": "^3.0.2",
+        "earcut": "^2.2.4",
         "polygon-clipping": "^0.15.7"
     },
     "devDependencies": {
-        "ts-node": "^10.9.2",
         "typescript": "^5.4.5"
     }
 }
