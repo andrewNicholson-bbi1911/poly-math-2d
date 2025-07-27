@@ -20,88 +20,107 @@ npm install poly-math-2d
 ### Main Classes
 
 #### `Point`
+Basic 2D point class.
 ```ts
 class Point {
-    constructor(public x: number, public y: number) {}
+    constructor(x: number, y: number);
 }
 ```
 
 #### `Polygon`
+Main class for polygon operations. Supports holes, triangulation, and boolean operations.
 ```ts
 class Polygon {
-    points: Point[];
-    tpolygons: TPolygon[];  // Triangulation
-    holes: Polygon[];       // Internal holes
-    
-    constructor(points: Point[], holes: Polygon[] = []);
-    static createWithHoles(points: Point[], holes: Polygon[] = []): Polygon; // Holes support via earcut
+    // Properties
+    points: Point[];           // Polygon vertices
+    tpolygons: TPolygon[];    // Triangulation result
+    holes: Polygon[];         // Internal holes
+
+    // Constructor
+    constructor(points: Point[], holes?: Polygon[]);
+
+    // Static Methods
+    static createWithHoles(points: Point[], holes?: Polygon[]): Polygon;
+    // Creates a polygon with holes using earcut triangulation
+    // Recommended for polygons with holes as it handles them correctly
+
+    // Instance Methods
     isConvex(): boolean;
+    // Checks if the polygon is convex
+
     unionPolygon(other: Polygon): PolygonMap;
+    // Performs union operation with another polygon
+    // Returns a PolygonMap as the result might contain multiple polygons
+
     differencePolygon(other: Polygon): PolygonMap;
+    // Subtracts another polygon from this one
+    // Returns a PolygonMap as the result might contain multiple polygons
 }
 ```
 
 #### `PolygonMap`
+Container for multiple polygons. Useful for complex boolean operations results.
 ```ts
 class PolygonMap {
-    polygons: Polygon[];
-    
-    constructor(polygons: Polygon[] = []);
+    // Properties
+    polygons: Polygon[];      // Array of polygons
+
+    // Constructor
+    constructor(polygons?: Polygon[]);
+
+    // Methods
     unionPolygon(other: PolygonMap): PolygonMap;
+    // Performs union operation with another polygon map
+    // Combines all polygons from both maps
+
     differencePolygon(other: PolygonMap): PolygonMap;
+    // Subtracts another polygon map from this one
+    // Useful for complex shape subtraction
 }
 ```
 
-#### `TPolygon` (Triangle polygon)
+#### `TPolygon`
+Represents a triangulated polygon part with adjacency information.
 ```ts
 class TPolygon {
-    points: Point[];
-    neighbors: TPolygon[];  // Adjacent triangles
-    
-    constructor(points: Point[]);
+    // Properties
+    points: Point[];         // Triangle vertices
+    neighbors: TPolygon[];   // Adjacent triangles
+
+    // Methods
     isNeighbor(other: TPolygon): boolean;
+    // Checks if another TPolygon is adjacent to this one
+    // Two triangles are neighbors if they share an edge
+
     getCommonEdge(other: TPolygon): [Point, Point] | null;
+    // Returns shared edge between two adjacent triangles
+    // Returns null if triangles are not adjacent
 }
 ```
 
-## Examples
+### Utility Functions
+
+The library also provides several utility functions for geometric operations:
 
 ```ts
-// Basic polygon operations
-const points = [new Point(0, 0), new Point(2, 0), new Point(1, 2)];
-const polygon = new Polygon(points);
+// Point in polygon test
+pointInPolygon(point: Point, polygon: Point[]): boolean;
 
-// Check if polygon is convex
-console.log('Is convex:', polygon.isConvex());
+// Segment intersection test
+segmentsIntersect(a1: Point, a2: Point, b1: Point, b2: Point): boolean;
 
-// Create polygon with holes
-const outerPoints = [new Point(0, 0), new Point(4, 0), new Point(4, 4), new Point(0, 4)];
-const holePoints = [new Point(1, 1), new Point(3, 1), new Point(3, 3), new Point(1, 3)];
-const hole = new Polygon(holePoints);
-const polygonWithHole = Polygon.createWithHoles(outerPoints, [hole]);
+// Polygon intersection test
+polygonIntersectsPolygon(poly1: Point[], poly2: Point[]): boolean;
 
-// Boolean operations
-const poly1 = new Polygon([new Point(0, 0), new Point(2, 0), new Point(1, 2)]);
-const poly2 = new Polygon([new Point(1, 1), new Point(3, 1), new Point(2, 3)]);
+// Convex hull operations
+convexUnion(poly1: Point[], poly2: Point[]): Point[];
+convexDifference(subject: Point[], clip: Point[]): Point[][];
+```
 
-const union = poly1.unionPolygon(poly2);
-const difference = poly1.differencePolygon(poly2);
+## Build
 
-// Segment intersection
-const seg1Start = new Point(0, 0);
-const seg1End = new Point(4, 4);
-const seg2Start = new Point(0, 4);
-const seg2End = new Point(4, 0);
-
-if (segmentsIntersect(seg1Start, seg1End, seg2Start, seg2End)) {
-    console.log('Segments intersect');
-}
-
-// Convex hull
-const points1 = [new Point(0, 0), new Point(2, 0), new Point(1, 2)];
-const points2 = [new Point(1, 1), new Point(3, 1), new Point(2, 3)];
-const hull = convexUnion(points1, points2);
-console.log('Convex hull:', hull);
+```bash
+npm run build
 ```
 
 ## Project Structure
