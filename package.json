@@ -1,6 +1,6 @@
 {
     "name": "poly-math-2d",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "2D Polygon math: boolean operations, triangulation, graphs, support for holes and non-convex shapes.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
