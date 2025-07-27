@@ -1,5 +1,5 @@
 // polygon_graph.ts
-// Классы для работы с графом триангулированного многоугольника
+// Classes for working with triangulated polygon graph
 
 import { convexUnion, convexDifference, trianglesConvexUnion, trianglesDifference, Point as P2DPoint, Triangle as P2DTriangle } from './poly2d.js';
 import polygonClipping from 'polygon-clipping';
@@ -11,7 +11,7 @@ export class Point {
 
 export type Triangle = [Point, Point, Point];
 
-// Треугольный полигон
+// Triangular polygon
 export class TPolygon {
     mainTriangle: Triangle;
     centerPoint: Point;
@@ -25,7 +25,7 @@ export class TPolygon {
     }
 }
 
-// Связь между треугольными полигонами
+// Connection between triangular polygons
 export class TPolygonConnection {
     neighbor: TPolygon;
     distance: number;
@@ -36,23 +36,23 @@ export class TPolygonConnection {
 }
 
 function toPolygonClippingFormat(pts: Point[]): number[][][] {
-    // polygon-clipping ожидает Polygon: [ [ [x, y], ... ] ]
+    // polygon-clipping expects Polygon: [ [ [x, y], ... ] ]
     if (pts.length === 0) return [];
     const ring = pts.map(p => [p.x, p.y]);
-    // Замыкаем контур, если не замкнут
+    // Close the contour if not closed
     if (ring.length > 0 && (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1])) {
         ring.push([ring[0][0], ring[0][1]]);
     }
-    return [ring]; // Polygon: массив колец
+    return [ring]; // Polygon: array of rings
 }
 
 function parseClippingResult(result: any): Polygon[] {
     if (!result || result.length === 0) return [];
-    // Если результат — Polygon (number[][][]), оборачиваем в массив
+    // If the result is Polygon (number[][][]), wrap it in an array
     if (Array.isArray(result[0][0][0])) {
         // MultiPolygon: number[][][][]
         return result.map((poly: number[][][]) => {
-            // Берём только внешний контур (poly[0])
+            // Take only the outer contour (poly[0])
             return new Polygon(poly[0].map((pt: number[]) => new Point(pt[0], pt[1])));
         });
     } else {
@@ -62,16 +62,16 @@ function parseClippingResult(result: any): Polygon[] {
 }
 
 function triangulateWithHoles(outer: Point[], holes: Polygon[]): Triangle[] {
-    // Формируем flat-массив координат и индексы дырок
+    // Form a flat array of coordinates and hole indices
     const vertices: number[] = [];
     const holeIndices: number[] = [];
     let idx = 0;
-    // Внешний контур
+    // Outer contour
     for (const p of outer) {
         vertices.push(p.x, p.y);
     }
     idx += outer.length;
-    // Дырки
+    // Holes
     for (const hole of holes) {
         holeIndices.push(idx);
         for (const p of hole.points) {
@@ -79,7 +79,7 @@ function triangulateWithHoles(outer: Point[], holes: Polygon[]): Triangle[] {
         }
         idx += hole.points.length;
     }
-    // Триангуляция
+    // Triangulation
     const triangles: Triangle[] = [];
     const indices = earcut(vertices, holeIndices);
     for (let i = 0; i < indices.length; i += 3) {
@@ -92,7 +92,7 @@ function triangulateWithHoles(outer: Point[], holes: Polygon[]): Triangle[] {
     return triangles;
 }
 
-// Основной многоугольник
+// Main polygon
 export class Polygon {
     points: Point[];
     tpolygons: TPolygon[] = [];
@@ -103,7 +103,7 @@ export class Polygon {
         this._rebuildTriangulation();
     }
     private _rebuildTriangulation() {
-        // Если есть дырки — используем earcut
+        // If there are holes - use earcut
         if (this.holes.length > 0) {
             const triangles = triangulateWithHoles(this.points, this.holes);
             this.tpolygons = triangles.map(tri => new TPolygon(tri));
@@ -113,7 +113,7 @@ export class Polygon {
             this.tpolygons = triangles.map(tri => new TPolygon(tri));
             buildTPolygonConnections(this.tpolygons);
         }
-        // Пересоздаём tpolygons и связи для всех holes (их собственная триангуляция)
+        // Rebuild tpolygons and connections for all holes (their own triangulation)
         for (const hole of this.holes) {
             if (hole.holes.length > 0) {
                 const trianglesH = triangulateWithHoles(hole.points, hole.holes);
@@ -126,25 +126,25 @@ export class Polygon {
             }
         }
     }
-    // Проверка выпуклости
+    // Check for convexity
     isConvex(): boolean {
         return isConvexPolygon(this.points);
     }
-    // Объединение
+    // Union
     unionPolygon(other: Polygon): PolygonMap {
         const pcA = toPolygonClippingFormat(this.points);
         const pcB = toPolygonClippingFormat(other.points);
         const result = (polygonClipping.union as any)(pcA, pcB);
         return new PolygonMap(Polygon.fromClippingResult(result));
     }
-    // Разность
+    // Difference
     differencePolygon(other: Polygon): PolygonMap {
         const pcA = toPolygonClippingFormat(this.points);
         const pcB = toPolygonClippingFormat(other.points);
         const result = (polygonClipping.difference as any)(pcA, pcB);
         return new PolygonMap(Polygon.fromClippingResult(result));
     }
-    // Получить все внешние контуры как массив Polygon
+    // Get all outer contours as an array of Polygon
     static fromClippingResult(result: any): Polygon[] {
         if (!result || result.length === 0) return [];
         // result: MultiPolygon (array of polygons), polygon: array of rings
@@ -163,16 +163,16 @@ export class PolygonMap {
     constructor(polygons: Polygon[] = []) {
         this.polygons = polygons;
     }
-    // Объединение двух PolygonMap
+    // Union of two PolygonMap
     unionPolygon(other: PolygonMap): PolygonMap {
         let allPolys: Polygon[] = [...this.polygons, ...other.polygons];
         if (allPolys.length === 0) return new PolygonMap([]);
-        // Собираем все полигоны для polygon-clipping
+        // Collect all polygons for polygon-clipping
         const allPolyRings = allPolys.map(p => toPolygonClippingFormat(p.points)); // number[][][]
         const result = (polygonClipping.union as any)(...allPolyRings);
         return new PolygonMap(Polygon.fromClippingResult(result));
     }
-    // Разность PolygonMap - PolygonMap
+    // Difference PolygonMap - PolygonMap
     differencePolygon(other: PolygonMap): PolygonMap {
         if (this.polygons.length === 0) return new PolygonMap([]);
         const otherPolyRings = other.polygons.map(p => toPolygonClippingFormat(p.points));
@@ -186,7 +186,7 @@ export class PolygonMap {
     }
 }
 
-// Проверка CCW порядка точек
+// Check CCW order of points
 function isCCW(points: Point[]): boolean {
     let sum = 0;
     for (let i = 0; i < points.length; i++) {
@@ -207,7 +207,7 @@ function earClippingTriangulation(points: Point[]): Triangle[] {
     const verts = points.map((p, i) => i);
     function isConvex(i0: number, i1: number, i2: number): boolean {
         const a = points[i0], b = points[i1], c = points[i2];
-        // Для CCW: cross < 0 — вогнутый, cross > 0 — выпуклый
+        // For CCW: cross < 0 — concave, cross > 0 — convex
         return cross(a, b, c) > 0;
     }
     function cross(a: Point, b: Point, c: Point): number {
@@ -228,7 +228,7 @@ function earClippingTriangulation(points: Point[]): Triangle[] {
             const i1 = verts[i];
             const i2 = verts[(i + 1) % verts.length];
             if (!isConvex(i0, i1, i2)) continue;
-            // Проверяем, что никакая другая точка не лежит внутри уха
+            // Check if no other point lies inside the ear
             let hasPointInside = false;
             for (let j = 0; j < verts.length; j++) {
                 if (j === (i + verts.length - 1) % verts.length || j === i || j === (i + 1) % verts.length) continue;
@@ -238,7 +238,7 @@ function earClippingTriangulation(points: Point[]): Triangle[] {
                 }
             }
             if (hasPointInside) continue;
-            // Добавляем треугольник
+            // Add triangle
             triangles.push([points[i0], points[i1], points[i2]]);
             verts.splice(i, 1);
             earFound = true;
@@ -253,9 +253,9 @@ function earClippingTriangulation(points: Point[]): Triangle[] {
     return triangles;
 }
 
-// --- Построение связей между TPolygon ---
+// --- Building connections between TPolygon ---
 function buildTPolygonConnections(tpolys: TPolygon[]) {
-    // Считаем, что два TPolygon соседи, если у них совпадают две вершины
+    // Assume two TPolygons are neighbors if they share two vertices
     for (let i = 0; i < tpolys.length; i++) {
         for (let j = i + 1; j < tpolys.length; j++) {
             const shared = countSharedVertices(tpolys[i].mainTriangle, tpolys[j].mainTriangle);
@@ -280,7 +280,7 @@ function distance(a: Point, b: Point): number {
     return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 }
 
-// Проверка выпуклости многоугольника
+// Check for convexity of polygon
 function isConvexPolygon(points: Point[]): boolean {
     if (points.length < 4) return true;
     let sign = 0;
