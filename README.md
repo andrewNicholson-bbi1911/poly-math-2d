@@ -104,12 +104,6 @@ const hull = convexUnion(points1, points2);
 console.log('Convex hull:', hull);
 ```
 
-## Build
-
-```bash
-npm run build
-```
-
 ## Project Structure
 
 ```
