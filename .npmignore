@@ -24,3 +24,6 @@ yarn-error.log*
 *.temp
 .DS_Store
 Thumbs.db 
+
+# Others
+.cursor/

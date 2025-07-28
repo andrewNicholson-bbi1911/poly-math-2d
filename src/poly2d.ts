@@ -1,7 +1,9 @@
 // poly2d.ts
 // Optimized functions for working with triangles (3 vertices, always convex)
 
-export type Point = { x: number, y: number };
+import { Point, PointType } from './point.js';
+
+export { Point, PointType };
 export type Triangle = [Point, Point, Point];
 
 // 1. Check if a point lies inside a triangle (barycentric method)
@@ -133,10 +135,10 @@ function segmentIntersection(a1: Point, a2: Point, b1: Point, b2: Point): Point 
     if (ua < 0 || ua > 1) return null;
     const ub = ((a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x)) / d;
     if (ub < 0 || ub > 1) return null;
-    return {
-        x: a1.x + ua * (a2.x - a1.x),
-        y: a1.y + ua * (a2.y - a1.y)
-    };
+    return new Point(
+        a1.x + ua * (a2.x - a1.x),
+        a1.y + ua * (a2.y - a1.y)
+    );
 }
 
 // 1. Check if a point lies inside a polygon (ray algorithm)

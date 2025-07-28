@@ -1,13 +1,11 @@
 // polygon_graph.ts
 // Classes for working with triangulated polygon graph
 
-import { convexUnion, convexDifference, trianglesConvexUnion, trianglesDifference, Point as P2DPoint, Triangle as P2DTriangle } from './poly2d.js';
+import { convexUnion, convexDifference, trianglesConvexUnion, trianglesDifference, Point, Triangle as P2DTriangle } from './poly2d.js';
 import polygonClipping from 'polygon-clipping';
 import earcut from 'earcut';
 
-export class Point {
-    constructor(public x: number, public y: number) { }
-}
+export { Point };
 
 export type Triangle = [Point, Point, Point];
 
@@ -84,9 +82,9 @@ function triangulateWithHoles(outer: Point[], holes: Polygon[]): Triangle[] {
     const indices = earcut(vertices, holeIndices);
     for (let i = 0; i < indices.length; i += 3) {
         const ia = indices[i] * 2, ib = indices[i + 1] * 2, ic = indices[i + 2] * 2;
-        const a: Point = { x: vertices[ia], y: vertices[ia + 1] };
-        const b: Point = { x: vertices[ib], y: vertices[ib + 1] };
-        const c: Point = { x: vertices[ic], y: vertices[ic + 1] };
+        const a = new Point(vertices[ia], vertices[ia + 1]);
+        const b = new Point(vertices[ib], vertices[ib + 1]);
+        const c = new Point(vertices[ic], vertices[ic + 1]);
         triangles.push([a, b, c]);
     }
     return triangles;
@@ -277,7 +275,7 @@ function countSharedVertices(tri1: Triangle, tri2: Triangle): number {
     return count;
 }
 function distance(a: Point, b: Point): number {
-    return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+    return Point.getDistance(a, b);
 }
 
 // Check for convexity of polygon

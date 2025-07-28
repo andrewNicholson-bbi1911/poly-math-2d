@@ -20,10 +20,30 @@ npm install poly-math-2d
 ### Main Classes
 
 #### `Point`
-Basic 2D point class.
+Enhanced 2D point class with distance calculation methods.
 ```ts
 class Point {
-    constructor(x: number, y: number);
+    constructor(public x: number, public y: number);
+
+    // Static distance methods
+    static getDistance(a: Point, b: Point): number;
+    // Calculates exact Euclidean distance between two points
+
+    static getDistanceQuick(a: Point, b: Point): number;
+    // Fast approximate distance using alpha-max + beta-min algorithm
+    // ~0.8% error but much faster for performance-critical applications
+
+    static getManhattanDistance(a: Point, b: Point): number;
+    // Manhattan distance (|x1-x2| + |y1-y2|) - very fast
+
+    static getDistanceSquared(a: Point, b: Point): number;
+    // Squared distance (fastest when you don't need the actual distance)
+
+    // Instance methods (same as static but called on point instance)
+    getDistance(to: Point): number;
+    getDistanceQuick(to: Point): number;
+    getManhattanDistance(to: Point): number;
+    getDistanceSquared(to: Point): number;
 }
 ```
 
@@ -129,6 +149,7 @@ npm run build
 poly-math-2d/
 ├── src/
 │   ├── index.ts          # Main entry point
+│   ├── point.ts          # Point class with distance methods
 │   ├── polygon.ts        # Main classes (Polygon, PolygonMap, TPolygon)
 │   └── poly2d.ts         # Basic geometric functions
 ├── dist/                 # Compiled files
