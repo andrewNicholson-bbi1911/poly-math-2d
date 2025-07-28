@@ -7,9 +7,10 @@ Library for working with 2D polygons: boolean operations (union, difference), tr
 - ✅ Triangulation with holes support (earcut)
 - ✅ Point-in-polygon testing with two algorithms (ray-casting and triangulation)
 - ✅ Building triangle adjacency graph (TPolygon)
-- ✅ PolygonMap support (set of polygons)
+- ✅ PolygonMap support (set of polygons) - modular design
 - ✅ Basic geometric operations (intersections, convex hulls)
 - ✅ TypeScript support
+- ✅ Clean modular architecture with separate files for different functionality
 
 ## Installation
 ```bash
@@ -49,7 +50,9 @@ class Point {
 ```
 
 #### `Polygon`
-Main class for polygon operations. Supports holes, triangulation, and boolean operations.
+Main class for polygon operations. Supports holes, triangulation, and boolean operations.  
+**Located in:** `src/polygon.ts`
+
 ```ts
 class Polygon {
     // Properties
@@ -98,7 +101,9 @@ class Polygon {
 ```
 
 #### `PolygonMap`
-Container for multiple polygons. Useful for complex boolean operations results.
+Container for multiple polygons. Useful for complex boolean operations results.  
+**Located in:** `src/polygon-map.ts`
+
 ```ts
 class PolygonMap {
     // Properties
@@ -153,11 +158,6 @@ convexUnion(poly1: Point[], poly2: Point[]): Point[];
 convexDifference(subject: Point[], clip: Point[]): Point[][];
 ```
 
-## Build
-
-```bash
-npm run build
-```
 
 ## Project Structure
 
@@ -166,7 +166,8 @@ poly-math-2d/
 ├── src/
 │   ├── index.ts          # Main entry point
 │   ├── point.ts          # Point class with distance methods
-│   ├── polygon.ts        # Main classes (Polygon, PolygonMap, TPolygon)
+│   ├── polygon.ts        # Polygon and TPolygon classes
+│   ├── polygon-map.ts    # PolygonMap class for multiple polygons
 │   └── poly2d.ts         # Basic geometric functions
 ├── dist/                 # Compiled files
 ├── package.json
