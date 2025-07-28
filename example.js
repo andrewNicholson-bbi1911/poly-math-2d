@@ -83,16 +83,51 @@ try {
 
     // 4. Basic functions
     console.log('🎯 4. Geometric functions');
-    const testPoint = new Point(2, 2);
-    const testPolygon = [
-        new Point(0, 0),
-        new Point(4, 0),
-        new Point(4, 4),
-        new Point(0, 4)
-    ];
+    const testPointIn = new Point(2, 2);
+    const testPointOut = new Point(5, 5);
+    const testPolygon = new Polygon(
+        [
+            new Point(0, 0),
+            new Point(4, 0),
+            new Point(4, 4),
+            new Point(0, 4)
+        ]
+    );
 
-    const isInside = pointInPolygon(testPoint, testPolygon);
-    console.log(`   Point (2,2) inside square: ${isInside}`);
+    const testPolygonWithHole = new Polygon(
+        [
+            new Point(0, 0),
+            new Point(4, 0),
+            new Point(4, 4),
+            new Point(0, 4)
+        ],
+        [
+            new Polygon(
+                [
+                    new Point(1, 1),
+                    new Point(3, 1),
+                    new Point(3, 3),
+                    new Point(1, 3)
+                ]
+            )
+        ]
+    );
+
+    const isInsideIn = testPolygon.isPointInPolygon(testPointIn);
+    console.log(`   Point (2,2) inside square: ${isInsideIn}`);
+    const isInsideOut = testPolygon.isPointInPolygon(testPointOut);
+    console.log(`   Point (5,5) inside square: ${isInsideOut}`);
+
+    const isInsideInWithHole = testPolygonWithHole.isPointInPolygon(testPointIn);
+    console.log(`   Point (2,2) inside square with hole: ${isInsideInWithHole}`);
+    const isInsideOutWithHole = testPolygonWithHole.isPointInPolygon(testPointOut);
+    console.log(`   Point (5,5) inside square with hole: ${isInsideOutWithHole}`);
+
+
+    const isInsideInWithHoleTriangulated = testPolygonWithHole.isPointInPolygonTriangulated(testPointIn);
+    console.log(`   Point (2,2) inside square with hole triangulated: ${isInsideInWithHoleTriangulated}`);
+    const isInsideOutWithHoleTriangulated = testPolygonWithHole.isPointInPolygonTriangulated(testPointOut);
+    console.log(`   Point (5,5) inside square with hole triangulated: ${isInsideOutWithHoleTriangulated}`);
 
     const intersect = segmentsIntersect(
         new Point(0, 0), new Point(4, 4),

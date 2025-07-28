@@ -5,6 +5,7 @@ Library for working with 2D polygons: boolean operations (union, difference), tr
 ## Features
 - ✅ Boolean operations on polygons (union, difference) with holes support
 - ✅ Triangulation with holes support (earcut)
+- ✅ Point-in-polygon testing with two algorithms (ray-casting and triangulation)
 - ✅ Building triangle adjacency graph (TPolygon)
 - ✅ PolygonMap support (set of polygons)
 - ✅ Basic geometric operations (intersections, convex hulls)
@@ -64,9 +65,27 @@ class Polygon {
     // Creates a polygon with holes using earcut triangulation
     // Recommended for polygons with holes as it handles them correctly
 
+    static isPointInPolygon(point: Point, polygon: Polygon): boolean;
+    // Static version of point-in-polygon test using ray-casting algorithm
+    // Faster for most cases, properly handles holes
+
+    static isPointInPolygonTriangulated(point: Point, polygon: Polygon): boolean;
+    // Static version of point-in-polygon test using triangulation
+    // Useful when working with triangulated polygons
+
     // Instance Methods
     isConvex(): boolean;
     // Checks if the polygon is convex
+
+    isPointInPolygon(point: Point): boolean;
+    // Checks if a point is inside the polygon using fast ray-casting algorithm
+    // Properly handles polygons with holes
+    // Recommended for most use cases due to better performance
+
+    isPointInPolygonTriangulated(point: Point): boolean;
+    // Checks if a point is inside the polygon using triangulation
+    // Uses pointInTriangle checks on the polygon's triangulation
+    // Useful when working with already triangulated polygons
 
     unionPolygon(other: Polygon): PolygonMap;
     // Performs union operation with another polygon
@@ -123,9 +142,6 @@ class TPolygon {
 The library also provides several utility functions for geometric operations:
 
 ```ts
-// Point in polygon test
-pointInPolygon(point: Point, polygon: Point[]): boolean;
-
 // Segment intersection test
 segmentsIntersect(a1: Point, a2: Point, b1: Point, b2: Point): boolean;
 

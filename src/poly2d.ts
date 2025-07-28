@@ -141,20 +141,22 @@ function segmentIntersection(a1: Point, a2: Point, b1: Point, b2: Point): Point 
     );
 }
 
-// 1. Check if a point lies inside a polygon (ray algorithm)
-export function pointInPolygon(point: Point, polygon: Point[]): boolean {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const xi = polygon[i].x, yi = polygon[i].y;
-        const xj = polygon[j].x, yj = polygon[j].y;
-        const intersect = ((yi > point.y) !== (yj > point.y)) &&
-            (point.x < (xj - xi) * (point.y - yi) / (yj - yi + 1e-12) + xi);
-        if (intersect) inside = !inside;
-    }
-    return inside;
-}
+
 
 export function polygonIntersectsPolygon(poly1: Point[], poly2: Point[]): boolean {
+    // Helper function for point in polygon check (ray algorithm)
+    const pointInPolygonLocal = (point: Point, polygon: Point[]): boolean => {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            const xi = polygon[i].x, yi = polygon[i].y;
+            const xj = polygon[j].x, yj = polygon[j].y;
+            const intersect = ((yi > point.y) !== (yj > point.y)) &&
+                (point.x < (xj - xi) * (point.y - yi) / (yj - yi + 1e-12) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    };
+
     for (let i = 0; i < poly1.length - 1; i++) {
         for (let j = 0; j < poly2.length - 1; j++) {
             if (segmentsIntersect(poly1[i], poly1[i + 1], poly2[j], poly2[j + 1])) {
@@ -163,7 +165,7 @@ export function polygonIntersectsPolygon(poly1: Point[], poly2: Point[]): boolea
         }
     }
     // One inside another
-    if (pointInPolygon(poly1[0], poly2) || pointInPolygon(poly2[0], poly1)) return true;
+    if (pointInPolygonLocal(poly1[0], poly2) || pointInPolygonLocal(poly2[0], poly1)) return true;
     return false;
 }
 

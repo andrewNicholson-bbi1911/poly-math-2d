@@ -1,13 +1,15 @@
 // polygon_graph.ts
 // Classes for working with triangulated polygon graph
 
-import { convexUnion, convexDifference, trianglesConvexUnion, trianglesDifference, Point, Triangle as P2DTriangle } from './poly2d.js';
+import { convexUnion, convexDifference, trianglesConvexUnion, trianglesDifference, Point, Triangle as P2DTriangle, pointInTriangle } from './poly2d.js';
 import polygonClipping from 'polygon-clipping';
 import earcut from 'earcut';
 
 export { Point };
 
 export type Triangle = [Point, Point, Point];
+
+
 
 // Triangular polygon
 export class TPolygon {
@@ -100,6 +102,7 @@ export class Polygon {
         this.holes = holes;
         this._rebuildTriangulation();
     }
+
     private _rebuildTriangulation() {
         // If there are holes - use earcut
         if (this.holes.length > 0) {
@@ -124,10 +127,58 @@ export class Polygon {
             }
         }
     }
+
     // Check for convexity
     isConvex(): boolean {
         return isConvexPolygon(this.points);
     }
+
+    // Check if point is inside this polygon (using ray-casting algorithm)
+    isPointInPolygon(point: Point): boolean {
+        return Polygon.isPointInPolygon(point, this);
+    }
+
+    // Check if point is inside this polygon using triangulation
+    isPointInPolygonTriangulated(point: Point): boolean {
+        return Polygon.isPointInPolygonTriangulated(point, this);
+    }
+
+    // Static method to check if point is inside a polygon (using ray-casting algorithm)
+    static isPointInPolygon(point: Point, polygon: Polygon): boolean {
+        // First check if point is in main polygon using ray-casting
+        let inside = false;
+        const points = polygon.points;
+        for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+            const xi = points[i].x, yi = points[i].y;
+            const xj = points[j].x, yj = points[j].y;
+            const intersect = ((yi > point.y) !== (yj > point.y)) &&
+                (point.x < (xj - xi) * (point.y - yi) / (yj - yi + 1e-12) + xi);
+            if (intersect) inside = !inside;
+        }
+
+        // If point is inside main polygon, check if it's not in any hole
+        if (inside && polygon.holes.length > 0) {
+            for (const hole of polygon.holes) {
+                if (Polygon.isPointInPolygon(point, hole)) {
+                    return false; // Point is in a hole
+                }
+            }
+        }
+
+        return inside;
+    }
+
+    // Static method to check if point is inside a polygon using triangulation
+    static isPointInPolygonTriangulated(point: Point, polygon: Polygon): boolean {
+        // Check if point is inside any of the triangulated polygons
+        for (const tpoly of polygon.tpolygons) {
+            if (pointInTriangle(point, tpoly.mainTriangle)) {
+                return true; // Point is in polygon and not in any hole
+            }
+        }
+        return false; // Point is not in any triangle
+    }
+
     // Union
     unionPolygon(other: Polygon): PolygonMap {
         const pcA = toPolygonClippingFormat(this.points);
