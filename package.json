@@ -1,6 +1,6 @@
 {
     "name": "poly-math-2d",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "description": "2D Polygon math: boolean operations, triangulation, graphs, support for holes and non-convex shapes.",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -21,9 +21,11 @@
         "triangulation",
         "boolean",
         "geometry",
+        "holes",
+        "non-convex",
+        "boolean operations",
         "earcut",
-        "polygon-clipping",
-        "navmesh"
+        "polygon clipping"
     ],
     "author": "Andrey Elfimov <eandrey813@gmail.com>",
     "license": "MIT",
